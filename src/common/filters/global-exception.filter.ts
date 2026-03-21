@@ -4,18 +4,31 @@ import {
     ExceptionFilter,
     HttpException,
     HttpStatus,
+    Logger,
 } from '@nestjs/common';
 import { BaseApplicationError } from '../../core/application/errors/base-application.error';
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
+    private readonly logger = new Logger(GlobalExceptionFilter.name);
+
     catch(exception: unknown, host: ArgumentsHost) {
         const ctx = host.switchToHttp();
         const response = ctx.getResponse();
         const request = ctx.getRequest();
 
+        const requestId = request.requestId || 'unknown';
+
         if (exception instanceof BaseApplicationError) {
             const status = this.mapApplicationErrorToStatus(exception.code);
+
+            this.logger.warn({
+                message: 'Application error handled',
+                requestId,
+                path: request.url,
+                code: exception.code,
+                errorMessage: exception.message,
+            });
 
             return response.status(status).json({
                 statusCode: status,
@@ -24,6 +37,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
                 code: exception.code,
                 timestamp: new Date().toISOString(),
                 path: request.url,
+                requestId,
             });
         }
 
@@ -31,14 +45,31 @@ export class GlobalExceptionFilter implements ExceptionFilter {
             const status = exception.getStatus();
             const exceptionResponse = exception.getResponse();
 
+            this.logger.warn({
+                message: 'HTTP exception handled',
+                requestId,
+                path: request.url,
+                status,
+                exceptionResponse,
+            });
+
             return response.status(status).json({
                 statusCode: status,
                 error: this.getHttpErrorName(status),
                 message: exceptionResponse,
                 timestamp: new Date().toISOString(),
                 path: request.url,
+                requestId,
             });
         }
+
+        this.logger.error({
+            message: 'Unexpected internal error',
+            requestId,
+            path: request.url,
+            errorMessage: exception instanceof Error ? exception.message : 'Unknown error',
+            stack: exception instanceof Error ? exception.stack : undefined,
+        });
 
         return response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
             statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -47,6 +78,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
             code: 'INTERNAL_SERVER_ERROR',
             timestamp: new Date().toISOString(),
             path: request.url,
+            requestId,
         });
     }
 
