@@ -1,3 +1,4 @@
+import { InvalidMessageStatusTransitionError } from 'src/core/application/errors/invalid-message-status-transition.error';
 import { MessageStatus } from '../enums/message-status.enum';
 
 export class Message {
@@ -17,9 +18,7 @@ export class Message {
         };
 
         if (!allowedTransitions[this.status].includes(newStatus)) {
-            throw new Error(
-                `Invalid status transition: ${this.status} -> ${newStatus}`,
-            );
+            throw new InvalidMessageStatusTransitionError(this.status, newStatus);
         }
 
         this.status = newStatus;

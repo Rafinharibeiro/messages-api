@@ -1,5 +1,6 @@
 import { Message } from '../../../domain/message/entities/message.entity';
 import { MessageRepository } from '../../../domain/message/repositories/message.repository';
+import { InvalidMessageSearchFilterError } from '../../errors/invalid-message-search-filter.error';
 
 interface SearchMessagesInput {
     sender?: string;
@@ -20,17 +21,12 @@ export class SearchMessagesUseCase {
                 endDate,
             );
         }
-
         if (sender) {
             return this.messageRepository.findBySender(sender);
         }
-
         if (startDate && endDate) {
             return this.messageRepository.findByPeriod(startDate, endDate);
         }
-
-        throw new Error(
-            'You must provide sender or startDate and endDate for search',
-        );
+        throw new InvalidMessageSearchFilterError();
     }
 }
