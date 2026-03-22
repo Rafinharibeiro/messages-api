@@ -7,8 +7,7 @@ import { AuthModule } from './infrastructure/http/auth/auth.module';
 
 @Module({
   imports: [AuthModule, MessagesModule],
-  controllers: [],
-  providers: [LoggingInterceptor],
+
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

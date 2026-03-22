@@ -6,8 +6,12 @@ import { UpdateMessageStatusUseCase } from '../../../../core/application/message
 import { MessageRepository } from '../../../../core/domain/message/repositories/message.repository';
 import { InMemoryMessageRepository } from '../../../persistence/in-memory/repositories/in-memory-message.repository';
 import { MessagesController } from './messages.controller';
+import { LoggerPort } from 'src/core/application/ports/logger.port';
+import { AppLoggerService } from 'src/infrastructure/logging/app-logger.service';
+import { LoggingModule } from 'src/infrastructure/logging/logging.module';
 
 @Module({
+    imports: [LoggingModule],
     controllers: [MessagesController],
     providers: [
         {
@@ -15,10 +19,16 @@ import { MessagesController } from './messages.controller';
             useClass: InMemoryMessageRepository,
         },
         {
+            provide: LoggerPort,
+            useClass: AppLoggerService,
+        },
+        {
             provide: CreateMessageUseCase,
-            useFactory: (messageRepository: MessageRepository) =>
-                new CreateMessageUseCase(messageRepository),
-            inject: [MessageRepository],
+            useFactory: (
+                messageRepository: MessageRepository,
+                logger: LoggerPort,
+            ) => new CreateMessageUseCase(messageRepository, logger),
+            inject: [MessageRepository, LoggerPort],
         },
         {
             provide: GetMessageByIdUseCase,
@@ -34,9 +44,11 @@ import { MessagesController } from './messages.controller';
         },
         {
             provide: UpdateMessageStatusUseCase,
-            useFactory: (messageRepository: MessageRepository) =>
-                new UpdateMessageStatusUseCase(messageRepository),
-            inject: [MessageRepository],
+            useFactory: (
+                messageRepository: MessageRepository,
+                logger: LoggerPort,
+            ) => new UpdateMessageStatusUseCase(messageRepository, logger),
+            inject: [MessageRepository, LoggerPort],
         },
     ],
 })
