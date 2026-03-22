@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { AppLoggerService } from 'src/infrastructure/logging/app-logger.service';

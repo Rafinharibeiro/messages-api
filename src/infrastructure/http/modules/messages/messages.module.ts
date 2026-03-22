@@ -4,11 +4,11 @@ import { GetMessageByIdUseCase } from '../../../../core/application/message/use-
 import { SearchMessagesUseCase } from '../../../../core/application/message/use-cases/search-messages.use-case';
 import { UpdateMessageStatusUseCase } from '../../../../core/application/message/use-cases/update-message-status.use-case';
 import { MessageRepository } from '../../../../core/domain/message/repositories/message.repository';
-import { InMemoryMessageRepository } from '../../../persistence/in-memory/repositories/in-memory-message.repository';
 import { MessagesController } from './messages.controller';
 import { LoggerPort } from 'src/core/application/ports/logger.port';
 import { AppLoggerService } from 'src/infrastructure/logging/app-logger.service';
 import { LoggingModule } from 'src/infrastructure/logging/logging.module';
+import { DynamoDbMessageRepository } from 'src/infrastructure/persistence/dynamodb/repositories/dynamodb-message.repository';
 
 @Module({
     imports: [LoggingModule],
@@ -16,7 +16,7 @@ import { LoggingModule } from 'src/infrastructure/logging/logging.module';
     providers: [
         {
             provide: MessageRepository,
-            useClass: InMemoryMessageRepository,
+            useClass: DynamoDbMessageRepository,
         },
         {
             provide: LoggerPort,
