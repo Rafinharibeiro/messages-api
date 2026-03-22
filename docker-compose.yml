@@ -4,8 +4,11 @@ services:
   dynamodb:
     image: amazon/dynamodb-local
     container_name: dynamodb-local
+    command: "-jar DynamoDBLocal.jar -sharedDb -dbPath /home/dynamodblocal/data"
     ports:
       - "8000:8000"
+    volumes:
+      - dynamodb_data:/home/dynamodblocal/data
 
   api:
     build: .
@@ -16,9 +19,14 @@ services:
       - "3000:3000"
     environment:
       PORT: 3000
-      AUTH_USERNAME: admin
-      AUTH_PASSWORD: admin123
+      AUTH_USERNAME: rafael
+      AUTH_PASSWORD: 1234
       JWT_SECRET: supersecret
       AWS_REGION: us-east-1
       DYNAMODB_TABLE_NAME: messages
       DYNAMODB_ENDPOINT: http://dynamodb:8000
+      AWS_ACCESS_KEY_ID: dummy
+      AWS_SECRET_ACCESS_KEY: dummy
+
+volumes:
+  dynamodb_data:

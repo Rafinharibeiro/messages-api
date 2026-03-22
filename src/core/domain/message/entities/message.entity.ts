@@ -1,4 +1,4 @@
-import { InvalidMessageStatusTransitionError } from 'src/core/application/errors/invalid-message-status-transition.error';
+import { InvalidMessageStatusTransitionError } from '../../../application/errors/invalid-message-status-transition.error';
 import { MessageStatus } from '../enums/message-status.enum';
 
 export class Message {
