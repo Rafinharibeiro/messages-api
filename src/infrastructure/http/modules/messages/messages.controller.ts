@@ -7,8 +7,10 @@ import {
     Patch,
     Post,
     Query,
+    Req,
+    UseGuards,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreateMessageUseCase } from '../../../../core/application/message/use-cases/create-message.use-case';
 import { GetMessageByIdUseCase } from '../../../../core/application/message/use-cases/get-message-by-id.use-case';
 import { SearchMessagesUseCase } from '../../../../core/application/message/use-cases/search-messages.use-case';
@@ -16,8 +18,11 @@ import { UpdateMessageStatusUseCase } from '../../../../core/application/message
 import { CreateMessageDto } from './dto/create-message.dto';
 import { QueryMessagesDto } from './dto/query-messages.dto';
 import { UpdateMessageStatusDto } from './dto/update-message-status.dto';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 
 @ApiTags('messages')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('messages')
 export class MessagesController {
     constructor(
@@ -62,4 +67,7 @@ export class MessagesController {
     ) {
         return this.updateMessageStatusUseCase.execute(id, dto.status);
     }
+
 }
+
+
