@@ -214,10 +214,23 @@ Testes unitarios cobrem:
 - `SearchMessagesUseCase`
 - `UpdateMessageStatusUseCase`
 
+Testes e2e cobrem:
+
+- autenticacao com JWT
+- criacao e consulta de mensagem por ID
+- atualizacao de status
+- buscas por remetente e por periodo
+
 Executar testes:
 
 ```bash
 yarn test
+```
+
+Executar testes e2e:
+
+```bash
+yarn test:e2e
 ```
 
 Gerar build:
