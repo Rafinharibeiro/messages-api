@@ -1,4 +1,5 @@
-import { BaseApplicationError } from './base-application.error';
+import { BaseApplicationError } from "./base-application.error";
+
 
 export class InvalidMessageSearchFilterError extends BaseApplicationError {
     constructor() {

@@ -29,6 +29,29 @@ O projeto agora segue um fluxo simples:
 - `PATCH /messages/:id/status`: atualiza o status da mensagem
 - `POST /auth/login`: gera um JWT para acesso aos endpoints protegidos
 
+Os status expostos pela API sao:
+
+- `SENT` = enviado
+- `RECEIVED` = recebido
+- `READ` = lido
+
+## Aderencia aos requisitos
+
+- [x] `POST /messages`
+- [x] `GET /messages/:id`
+- [x] `GET /messages?sender=...`
+- [x] `PATCH /messages/:id/status`
+- [x] `GET /messages?startDate=...&endDate=...`
+- [x] Modelagem com `id`, `content`, `sender`, `sentAt` e `status`
+- [x] DTOs com validacao
+- [x] Arquitetura escalavel com Clean Architecture
+- [x] Swagger para apoiar um front-end futuro
+- [x] Autenticacao com JWT
+- [x] Persistencia com DynamoDB
+- [x] Observabilidade com Winston, request id e exception filter
+- [x] Testes unitarios e e2e
+- [x] Fluxograma/diagrama da API em ferramenta versionavel
+
 ## Arquitetura
 
 O projeto foi estruturado com:
@@ -48,6 +71,10 @@ src/
 ├── infrastructure/      # HTTP, persistencia e logging
 └── common/              # filtros, interceptors e middlewares
 ```
+
+## Fluxograma
+
+O fluxo principal da API esta documentado em [docs/api-flowchart.md](./docs/api-flowchart.md) com Mermaid, que renderiza direto no GitHub e pode ser migrado facilmente para draw.io se necessario.
 
 ## Requisitos
 
@@ -267,6 +294,8 @@ Os diferenciais adicionados foram:
 
 ## Fluxo da API
 
+Ha uma versao resumida e focada nos requisitos em [docs/api-flowchart.md](./docs/api-flowchart.md).
+
 ```mermaid
 flowchart LR
     Client[Cliente / Front-end / Postman] --> Auth["AuthController<br/>POST /auth/login"]
@@ -320,3 +349,14 @@ flowchart LR
     LoggerPort --> LoggerInfra
     DynamoRepo --> Dynamo
 ```
+
+## Proximas evolucoes
+
+Se quiser deixar a entrega ainda mais forte, estes sao os proximos pontos com melhor custo-beneficio:
+
+- paginacao e ordenacao nas buscas por remetente e periodo
+- filtro opcional por status nas consultas
+- endpoint de health check para deploy e monitoramento
+- rate limiting para proteger autenticacao e escrita
+- pipeline CI com lint, testes unitarios e e2e
+- docker-compose ou LocalStack como opcao de ambiente local
