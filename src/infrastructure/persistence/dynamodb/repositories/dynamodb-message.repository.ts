@@ -19,16 +19,7 @@ export class DynamoDbMessageRepository extends MessageRepository {
 
         const dynamoClient = new DynamoDBClient({
             region: process.env.AWS_REGION || 'us-east-1',
-            endpoint: process.env.DYNAMODB_ENDPOINT || undefined,
-            credentials: process.env.DYNAMODB_ENDPOINT
-                ? {
-                    accessKeyId: 'dummy',
-                    secretAccessKey: 'dummy',
-                }
-                : undefined,
-
         });
-        console.log('Dynamo mode:', process.env.DYNAMODB_ENDPOINT ? 'local' : 'aws');
 
         this.client = DynamoDBDocumentClient.from(dynamoClient);
     }

@@ -1,5 +1,9 @@
 import 'dotenv/config';
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+    Injectable,
+    InternalServerErrorException,
+    UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { AppLoggerService } from 'src/infrastructure/logging/app-logger.service';
 
@@ -11,8 +15,15 @@ export class AuthService {
     ) { }
 
     async login(username: string, password: string) {
-        const validUsername = process.env.AUTH_USERNAME || 'admin';
-        const validPassword = process.env.AUTH_PASSWORD || 'admin123';
+        const validUsername = process.env.AUTH_USERNAME;
+        const validPassword = process.env.AUTH_PASSWORD;
+
+        if (!validUsername || !validPassword) {
+            this.appLogger.error('Authentication credentials are not configured');
+            throw new InternalServerErrorException(
+                'Authentication is not configured',
+            );
+        }
 
         if (username !== validUsername || password !== validPassword) {
             this.appLogger.warn('Invalid login attempt', { username });
