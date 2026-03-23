@@ -13,14 +13,15 @@ export class CreateMessageUseCase {
     constructor(
         private readonly messageRepository: MessageRepository,
         private readonly logger: LoggerPort,
-
     ) { }
 
     async execute(input: CreateMessageInput): Promise<Message> {
+        const { content, sender } = input;
+
         const message = new Message(
             randomUUID(),
-            input.content,
-            input.sender,
+            content,
+            sender,
             new Date(),
             MessageStatus.SENT,
         );

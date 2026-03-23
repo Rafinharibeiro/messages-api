@@ -10,9 +10,9 @@ export class AuthController {
 
     @Post('login')
     @ApiOperation({ summary: 'Realizar login e obter JWT' })
-    @ApiResponse({ status: 201, description: 'Token gerado com sucesso' })
+    @ApiResponse({ status: 200, description: 'Token gerado com sucesso' })
     @ApiResponse({ status: 401, description: 'Credenciais inválidas' })
-    login(@Body() dto: LoginDto) {
-        return this.authService.login(dto.username, dto.password);
+    login(@Body() dto: LoginDto): Promise<{ accessToken: string }> {
+        return this.authService.login(dto.email, dto.password);
     }
 }

@@ -1,7 +1,5 @@
 export enum MessageStatus {
-    SENT = 'SENT',
-    RECEIVED = 'RECEIVED',
-    READ = 'READ',
+    SENT = 'Enviado',
+    RECEIVED = 'Recebido',
+    READ = 'Lido',
 }
-
-//Garantindo consistencia, evitando escrever string literals em varios lugares do codigo, e facilitando a manutencao futura, melhorando a legibilidade do codigo.

@@ -7,7 +7,7 @@ import { MessageStatus } from '../src/core/domain/message/enums/message-status.e
 import { MessageRepository } from '../src/core/domain/message/repositories/message.repository';
 import { InMemoryMessageRepository } from '../src/infrastructure/persistence/in-memory/repositories/in-memory-message.repository';
 
-process.env.AUTH_USERNAME = 'e2e-user';
+process.env.AUTH_EMAIL = 'e2e-user@email.com';
 process.env.AUTH_PASSWORD = 'e2e-password';
 process.env.JWT_SECRET = 'supersecret';
 
@@ -15,6 +15,7 @@ const { AppModule } = require('../src/app.module');
 
 describe('Messages API (e2e)', () => {
     let app: INestApplication;
+    const sender = 'rafael';
 
     beforeEach(async () => {
         const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -48,7 +49,7 @@ describe('Messages API (e2e)', () => {
         const response = await request(app.getHttpServer())
             .post('/auth/login')
             .send({
-                username: process.env.AUTH_USERNAME,
+                email: process.env.AUTH_EMAIL,
                 password: process.env.AUTH_PASSWORD,
             })
             .expect(201);
@@ -66,14 +67,14 @@ describe('Messages API (e2e)', () => {
             .set('Authorization', `Bearer ${token}`)
             .send({
                 content: 'Mensagem e2e',
-                sender: 'rafael',
+                sender,
             })
             .expect(201);
 
         expect(createResponse.body).toMatchObject({
             id: expect.any(String),
             content: 'Mensagem e2e',
-            sender: 'rafael',
+            sender,
             status: MessageStatus.SENT,
         });
         expect(createResponse.body.sentAt).toEqual(expect.any(String));
@@ -94,7 +95,7 @@ describe('Messages API (e2e)', () => {
             .set('Authorization', `Bearer ${token}`)
             .send({
                 content: 'Fluxo completo',
-                sender: 'rafael',
+                sender,
             })
             .expect(201);
 
@@ -114,7 +115,7 @@ describe('Messages API (e2e)', () => {
 
         const senderSearchResponse = await request(app.getHttpServer())
             .get('/messages')
-            .query({ sender: 'rafael' })
+            .query({ sender })
             .set('Authorization', `Bearer ${token}`)
             .expect(200);
 
@@ -136,7 +137,7 @@ describe('Messages API (e2e)', () => {
         const combinedSearchResponse = await request(app.getHttpServer())
             .get('/messages')
             .query({
-                sender: 'rafael',
+                sender,
                 startDate,
                 endDate,
             })
@@ -146,7 +147,7 @@ describe('Messages API (e2e)', () => {
         expect(combinedSearchResponse.body).toHaveLength(1);
         expect(combinedSearchResponse.body[0]).toMatchObject({
             id: createResponse.body.id,
-            sender: 'rafael',
+            sender,
             status: MessageStatus.RECEIVED,
         });
     });

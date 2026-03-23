@@ -2,12 +2,10 @@ import {
     Body,
     Controller,
     Get,
-    NotFoundException,
     Param,
     Patch,
     Post,
     Query,
-    Req,
     UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
@@ -43,18 +41,21 @@ export class MessagesController {
     @ApiOperation({ summary: 'Buscar mensagem por ID' })
     @ApiResponse({ status: 200, description: 'Mensagem encontrada' })
     @ApiResponse({ status: 404, description: 'Mensagem não encontrada' })
-    async findById(@Param('id') id: string) {
-        return await this.getMessageByIdUseCase.execute(id);
+    findById(@Param('id') id: string) {
+        return this.getMessageByIdUseCase.execute(id);
     }
 
     @Get()
     @ApiOperation({ summary: 'Buscar mensagens por remetente e/ou período' })
     @ApiResponse({ status: 200, description: 'Mensagens encontradas' })
     find(@Query() query: QueryMessagesDto) {
+        const startDate = query.startDate ? new Date(query.startDate) : undefined;
+        const endDate = query.endDate ? new Date(query.endDate) : undefined;
+
         return this.searchMessagesUseCase.execute({
             sender: query.sender,
-            startDate: query.startDate ? new Date(query.startDate) : undefined,
-            endDate: query.endDate ? new Date(query.endDate) : undefined,
+            startDate,
+            endDate,
         });
     }
 
@@ -69,5 +70,3 @@ export class MessagesController {
     }
 
 }
-
-

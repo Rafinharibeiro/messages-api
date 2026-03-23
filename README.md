@@ -68,7 +68,7 @@ Variaveis esperadas:
 
 ```env
 PORT=3000
-AUTH_USERNAME=your-username
+AUTH_EMAIL=your-email
 AUTH_PASSWORD=your-password
 JWT_SECRET=change-me
 AWS_REGION=us-east-1
@@ -119,7 +119,7 @@ http://localhost:3000/docs
 
 ## Autenticacao
 
-O login usa os valores configurados em `AUTH_USERNAME` e `AUTH_PASSWORD`.
+O login usa os valores configurados em `AUTH_EMAIL` e `AUTH_PASSWORD`.
 
 Endpoint:
 
@@ -131,7 +131,7 @@ Exemplo de payload:
 
 ```json
 {
-  "username": "your-username",
+  "email": "your-email",
   "password": "your-password"
 }
 ```
