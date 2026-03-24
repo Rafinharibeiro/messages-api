@@ -32,7 +32,7 @@ export class CreateMessageUseCase {
             source: 'CreateMessageUseCase',
             messageId: createdMessage.id,
             sender: createdMessage.sender,
-            status: createdMessage.status,
+            newStatus: createdMessage.status,
         });
 
         return createdMessage;

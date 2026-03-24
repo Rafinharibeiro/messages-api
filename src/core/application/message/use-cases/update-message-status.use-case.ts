@@ -28,6 +28,7 @@ export class UpdateMessageStatusUseCase {
         this.logger.log('Message status updated successfully', {
             source: 'UpdateMessageStatusUseCase',
             messageId: updatedMessage.id,
+            sender: updatedMessage.sender,
             previousStatus,
             newStatus: updatedMessage.status,
         });

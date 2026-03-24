@@ -203,6 +203,41 @@ A aplicacao possui:
 - request id por requisicao
 - interceptor de tempo de resposta
 - global exception filter
+- envio opcional de logs para Datadog via `@shelf/winston-datadog-logs-transport`
+
+### Datadog (opcional)
+
+Para enviar logs para o Datadog direto pela aplicacao:
+
+1. Gere uma API key no Datadog.
+2. Ative as variaveis:
+
+```env
+DATADOG_ENABLED=true
+DATADOG_API_KEY=your-api-key
+DATADOG_SERVICE=messages-api
+DATADOG_ENV=dev
+DATADOG_HOSTNAME=
+```
+
+### Como visualizar os logs no Datadog
+
+1. Acesse o Datadog (Logs).
+2. Abra **Logs > Live Tail**.
+3. Filtre por:
+
+```text
+service:messages-api
+```
+
+Opcionalmente, filtre por ambiente:
+
+```text
+service:messages-api env:dev
+```
+
+Os logs sao enviados pelo Winston direto via HTTP usando o transport
+`@shelf/winston-datadog-logs-transport`.
 
 ## Testes
 
