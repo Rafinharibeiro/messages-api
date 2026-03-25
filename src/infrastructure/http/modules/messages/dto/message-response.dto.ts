@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { MessageStatus } from '../../../../../core/domain/message/enums/message-status.enum';
 
 export class MessageResponseDto {
-    @ApiProperty({ example: 'f1f7b4e6-1b7a-4f87-9b18-9b8f4c2a9e3a' })
+    @ApiProperty({ example: 'f1f7b4e6-1b7a-4f87-9' })
     id: string;
 
     @ApiProperty({ example: 'Olá, tudo bem?' })

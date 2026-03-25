@@ -24,7 +24,6 @@ export class Message {
     }
 
     public updateStatus(newStatus: MessageStatus): void {
-
         if (this.internalStatus === newStatus) {
             return;
         }

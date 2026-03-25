@@ -34,7 +34,11 @@ describe('Messages API (e2e)', () => {
         app = moduleFixture.createNestApplication();
 
         // Mantemos os Pipes e Interceptors iguais ao ambiente de produção
-        app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+        app.useGlobalPipes(new ValidationPipe({
+            whitelist: true,
+            forbidNonWhitelisted: true,
+            transform: true,
+        }));
         app.useGlobalFilters(app.get(GlobalExceptionFilter));
         app.useGlobalInterceptors(app.get(LoggingInterceptor));
 
@@ -72,13 +76,12 @@ describe('Messages API (e2e)', () => {
             .send({ content: 'Mensagem e2e', sender })
             .expect(201);
 
-        // Mapeamos os campos com underscore vindos da Entidade
         const createdMsg = createResponse.body;
-        const msgId = createdMsg._id || createdMsg.id;
+        const msgId = createdMsg.id;
 
         expect(createdMsg).toMatchObject({
-            _sender: sender,
-            _status: MessageStatus.SENT
+            sender,
+            status: MessageStatus.SENT,
         });
 
         // 2. Buscar por ID
@@ -101,8 +104,8 @@ describe('Messages API (e2e)', () => {
             .expect(201);
 
         const createdMsg = createResponse.body;
-        const msgId = createdMsg._id || createdMsg.id;
-        const sentAtStr = createdMsg._sentAt || createdMsg.sentAt;
+        const msgId = createdMsg.id;
+        const sentAtStr = createdMsg.sentAt;
 
         // 2. Atualizar Status para RECEIVED
         // Transição permitida na Entity: SENT -> RECEIVED
@@ -112,8 +115,7 @@ describe('Messages API (e2e)', () => {
             .send({ status: MessageStatus.RECEIVED })
             .expect(200);
 
-        // Validamos se o status mudou corretamente (lidando com o underscore)
-        const currentStatus = updateResponse.body._status || updateResponse.body.status;
+        const currentStatus = updateResponse.body.status;
         expect(currentStatus).toBe(MessageStatus.RECEIVED);
 
         // 3. Preparar datas para a busca (60 segundos de margem)
@@ -137,11 +139,10 @@ describe('Messages API (e2e)', () => {
             .set('Authorization', `Bearer ${token}`)
             .expect(200);
 
-        // Pegamos o ID do primeiro item da lista retornada
-        const foundId = combinedSearch.body[0]._id || combinedSearch.body[0].id;
+        const foundId = combinedSearch.body[0].id;
         expect(foundId).toBe(msgId);
 
-        const foundStatus = combinedSearch.body[0]._status || combinedSearch.body[0].status;
+        const foundStatus = combinedSearch.body[0].status;
         expect(foundStatus).toBe(MessageStatus.RECEIVED);
     });
 });

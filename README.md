@@ -56,7 +56,7 @@ src/
 - AWS CLI configurado ou credenciais AWS disponiveis no ambiente
 - Permissao para criar/consultar tabelas no DynamoDB
 
-## Configuracao
+## Configuração
 
 Crie o arquivo de ambiente:
 
@@ -97,7 +97,7 @@ yarn dynamo:create
 
 O script usa `AWS_REGION` e `DYNAMODB_TABLE_NAME` do ambiente atual.
 
-### Criacao automatica (sob demanda)
+### Criacao automática (sob demanda)
 
 Se a tabela nao existir, ela sera criada automaticamente **no primeiro** `POST /messages`.
 Isso exige permissao `dynamodb:CreateTable` na sua credencial AWS.
@@ -321,58 +321,12 @@ Os diferenciais adicionados foram:
 - logs estruturados
 - rastreabilidade por request id
 
-## Fluxo da API
 
-```mermaid
-flowchart LR
-    Client[Cliente / Front-end / Postman] --> Auth["AuthController<br/>POST /auth/login"]
-    Client --> Messages["MessagesController<br/>/messages"]
+## Fluxo da API (visual)
 
-    subgraph HTTP["Camada HTTP / NestJS"]
-        Auth
-        Messages
-        Guard["JwtAuthGuard"]
-        DTOs["DTOs + ValidationPipe"]
-        Filter["GlobalExceptionFilter"]
-        Interceptor["LoggingInterceptor"]
-        Middleware["RequestIdMiddleware"]
-    end
+![Fluxo da API]
 
-    Auth --> AuthService["AuthService"]
-    Messages --> Guard
-    Messages --> DTOs
-    Messages --> CreateUC["CreateMessageUseCase"]
-    Messages --> GetByIdUC["GetMessageByIdUseCase"]
-    Messages --> SearchUC["SearchMessagesUseCase"]
-    Messages --> UpdateStatusUC["UpdateMessageStatusUseCase"]
+<p align="center">
+  <img src="docs/images/fluxo-api.png" width="700"/>
+</p>
 
-    subgraph Core["Core / Application + Domain"]
-        AuthService
-        CreateUC
-        GetByIdUC
-        SearchUC
-        UpdateStatusUC
-        Entity["Message Entity"]
-        Errors["Application Errors"]
-        RepoPort["MessageRepository"]
-        LoggerPort["LoggerPort"]
-    end
-
-    CreateUC --> Entity
-    UpdateStatusUC --> Entity
-    GetByIdUC --> RepoPort
-    SearchUC --> RepoPort
-    CreateUC --> RepoPort
-    UpdateStatusUC --> RepoPort
-    AuthService --> LoggerInfra["AppLoggerService"]
-
-    subgraph Infra["Infrastructure"]
-        DynamoRepo["DynamoDbMessageRepository"]
-        LoggerInfra
-        Dynamo[(AWS DynamoDB)]
-    end
-
-    RepoPort --> DynamoRepo
-    LoggerPort --> LoggerInfra
-    DynamoRepo --> Dynamo
-```

@@ -5,14 +5,14 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { LoggingModule } from 'src/infrastructure/logging/logging.module';
-import { AUTH_CONFIG, loadAuthConfig } from './config/auth.config';
+import { AUTH_CONFIG, getJwtSecretOrThrow, loadAuthConfig } from './config/auth.config';
 
 @Module({
     imports: [
         PassportModule,
         LoggingModule,
         JwtModule.register({
-            secret: process.env.JWT_SECRET,
+            secret: getJwtSecretOrThrow(),
             signOptions: { expiresIn: '1h' },
         }),
     ],
