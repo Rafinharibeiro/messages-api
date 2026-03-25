@@ -324,9 +324,7 @@ Os diferenciais adicionados foram:
 
 ## Fluxo da API (visual)
 
-![Fluxo da API]
-
 <p align="center">
-  <img src="docs/images/fluxo-api.png" width="700"/>
+  <img src="docs/fluxo.jpeg" width="700"/>
 </p>
 
