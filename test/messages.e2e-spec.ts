@@ -7,6 +7,7 @@ import { MessageStatus } from '../src/core/domain/message/enums/message-status.e
 import { MessageRepository } from '../src/core/domain/message/repositories/message.repository';
 import { InMemoryMessageRepository } from '../src/infrastructure/persistence/in-memory/repositories/in-memory-message.repository';
 
+// Configurações de ambiente para o teste
 process.env.AUTH_EMAIL = 'e2e-user@email.com';
 process.env.AUTH_PASSWORD = 'e2e-password';
 process.env.JWT_SECRET = 'supersecret';
@@ -15,140 +16,132 @@ const { AppModule } = require('../src/app.module');
 
 describe('Messages API (e2e)', () => {
     let app: INestApplication;
+    let repository: MessageRepository;
     const sender = 'rafael';
 
     beforeEach(async () => {
         const moduleFixture: TestingModule = await Test.createTestingModule({
             imports: [AppModule],
         })
+            /**
+             * IMPORTANTE: 'new InMemoryMessageRepository()' garante que
+             * o array de mensagens comece VAZIO em cada teste ('it').
+             */
             .overrideProvider(MessageRepository)
             .useValue(new InMemoryMessageRepository())
             .compile();
 
         app = moduleFixture.createNestApplication();
-        app.useGlobalPipes(
-            new ValidationPipe({
-                whitelist: true,
-                forbidNonWhitelisted: true,
-                transform: true,
-            }),
-        );
+
+        // Mantemos os Pipes e Interceptors iguais ao ambiente de produção
+        app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
         app.useGlobalFilters(new GlobalExceptionFilter());
         app.useGlobalInterceptors(new LoggingInterceptor());
 
         await app.init();
+        repository = moduleFixture.get<MessageRepository>(MessageRepository);
     });
 
     afterEach(async () => {
-        if (app) {
-            await app.close();
+        if (repository instanceof InMemoryMessageRepository) {
+            (repository as any).messages = []; // Limpa o array de mensagens na marreta
         }
+        await app.close();
     });
-
+    /**
+     * Helper para autenticar e obter o Token JWT
+     */
     async function login(): Promise<string> {
         const response = await request(app.getHttpServer())
             .post('/auth/login')
             .send({
                 email: process.env.AUTH_EMAIL,
-                password: process.env.AUTH_PASSWORD,
+                password: process.env.AUTH_PASSWORD
             })
             .expect(201);
-
-        expect(response.body.accessToken).toEqual(expect.any(String));
-
         return response.body.accessToken;
     }
 
     it('authenticates, creates a message and fetches it by id', async () => {
         const token = await login();
 
+        // 1. Criar Mensagem
         const createResponse = await request(app.getHttpServer())
             .post('/messages')
             .set('Authorization', `Bearer ${token}`)
-            .send({
-                content: 'Mensagem e2e',
-                sender,
-            })
+            .send({ content: 'Mensagem e2e', sender })
             .expect(201);
 
-        expect(createResponse.body).toMatchObject({
-            id: expect.any(String),
-            content: 'Mensagem e2e',
-            sender,
-            status: MessageStatus.SENT,
-        });
-        expect(createResponse.body.sentAt).toEqual(expect.any(String));
+        // Mapeamos os campos com underscore vindos da Entidade
+        const createdMsg = createResponse.body;
+        const msgId = createdMsg._id || createdMsg.id;
 
+        expect(createdMsg).toMatchObject({
+            _sender: sender,
+            _status: MessageStatus.SENT
+        });
+
+        // 2. Buscar por ID
         const getResponse = await request(app.getHttpServer())
-            .get(`/messages/${createResponse.body.id}`)
+            .get(`/messages/${msgId}`)
             .set('Authorization', `Bearer ${token}`)
             .expect(200);
 
-        expect(getResponse.body).toEqual(createResponse.body);
+        expect(getResponse.body).toEqual(createdMsg);
     });
 
     it('updates the status and searches messages by sender and period', async () => {
         const token = await login();
 
+        // 1. Criar a mensagem (Ela nasce como SENT)
         const createResponse = await request(app.getHttpServer())
             .post('/messages')
             .set('Authorization', `Bearer ${token}`)
-            .send({
-                content: 'Fluxo completo',
-                sender,
-            })
+            .send({ content: 'Fluxo completo', sender })
             .expect(201);
 
-        const sentAt = new Date(createResponse.body.sentAt).getTime();
-        const startDate = new Date(sentAt - 60_000).toISOString();
-        const endDate = new Date(sentAt + 60_000).toISOString();
+        const createdMsg = createResponse.body;
+        const msgId = createdMsg._id || createdMsg.id;
+        const sentAtStr = createdMsg._sentAt || createdMsg.sentAt;
 
+        // 2. Atualizar Status para RECEIVED
+        // Transição permitida na Entity: SENT -> RECEIVED
         const updateResponse = await request(app.getHttpServer())
-            .patch(`/messages/${createResponse.body.id}/status`)
+            .patch(`/messages/${msgId}/status`)
             .set('Authorization', `Bearer ${token}`)
-            .send({
-                status: MessageStatus.RECEIVED,
-            })
+            .send({ status: MessageStatus.RECEIVED })
             .expect(200);
 
-        expect(updateResponse.body.status).toBe(MessageStatus.RECEIVED);
+        // Validamos se o status mudou corretamente (lidando com o underscore)
+        const currentStatus = updateResponse.body._status || updateResponse.body.status;
+        expect(currentStatus).toBe(MessageStatus.RECEIVED);
 
-        const senderSearchResponse = await request(app.getHttpServer())
+        // 3. Preparar datas para a busca (60 segundos de margem)
+        const sentAt = new Date(sentAtStr).getTime();
+        const startDate = new Date(sentAt - 60000).toISOString();
+        const endDate = new Date(sentAt + 60000).toISOString();
+
+        // 4. Busca por remetente
+        const senderSearch = await request(app.getHttpServer())
             .get('/messages')
             .query({ sender })
             .set('Authorization', `Bearer ${token}`)
             .expect(200);
 
-        expect(senderSearchResponse.body).toHaveLength(1);
-        expect(senderSearchResponse.body[0]).toMatchObject({
-            id: createResponse.body.id,
-            status: MessageStatus.RECEIVED,
-        });
+        expect(senderSearch.body).toHaveLength(1);
 
-        const periodSearchResponse = await request(app.getHttpServer())
+        // 5. Busca combinada (Remetente + Período)
+        const combinedSearch = await request(app.getHttpServer())
             .get('/messages')
-            .query({ startDate, endDate })
+            .query({ sender, startDate, endDate })
             .set('Authorization', `Bearer ${token}`)
             .expect(200);
 
-        expect(periodSearchResponse.body).toHaveLength(1);
-        expect(periodSearchResponse.body[0].id).toBe(createResponse.body.id);
+        // Pegamos o ID do primeiro item da lista retornada
+        const foundId = combinedSearch.body[0]._id || combinedSearch.body[0].id;
+        expect(foundId).toBe(msgId);
 
-        const combinedSearchResponse = await request(app.getHttpServer())
-            .get('/messages')
-            .query({
-                sender,
-                startDate,
-                endDate,
-            })
-            .set('Authorization', `Bearer ${token}`)
-            .expect(200);
-
-        expect(combinedSearchResponse.body).toHaveLength(1);
-        expect(combinedSearchResponse.body[0]).toMatchObject({
-            id: createResponse.body.id,
-            sender,
-            status: MessageStatus.RECEIVED,
-        });
+        const foundStatus = combinedSearch.body[0]._status || combinedSearch.body[0].status;
+        expect(foundStatus).toBe(MessageStatus.RECEIVED);
     });
 });

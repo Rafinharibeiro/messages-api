@@ -1,13 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum } from 'class-validator';
+import { IsEnum, IsNotEmpty } from 'class-validator'; // <-- Importei o IsNotEmpty
 import { MessageStatus } from '../../../../../core/domain/message/enums/message-status.enum';
 
 export class UpdateMessageStatusDto {
     @ApiProperty({
         enum: MessageStatus,
         example: MessageStatus.RECEIVED,
-        description: 'Novo status da mensagem',
+        description: 'New message status',
     })
-    @IsEnum(MessageStatus)
+    @IsNotEmpty({ message: 'Status is required.' })
+    @IsEnum(MessageStatus, { message: 'Provided status is invalid.' })
     status: MessageStatus;
 }

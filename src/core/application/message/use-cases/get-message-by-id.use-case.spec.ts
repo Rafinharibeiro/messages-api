@@ -8,7 +8,7 @@ describe('GetMessageByIdUseCase', () => {
     let messageRepository: jest.Mocked<MessageRepository>;
     let useCase: GetMessageByIdUseCase;
 
-    const message = new Message(
+    const mockMessage = Message.restore(
         'message-1',
         'Hello world',
         'rafael',
@@ -17,31 +17,20 @@ describe('GetMessageByIdUseCase', () => {
     );
 
     beforeEach(() => {
-        messageRepository = {
-            create: jest.fn(),
-            findById: jest.fn(),
-            findBySender: jest.fn(),
-            findByPeriod: jest.fn(),
-            findBySenderAndPeriod: jest.fn(),
-            updateStatus: jest.fn(),
-        };
-
+        messageRepository = { findById: jest.fn() } as any;
         useCase = new GetMessageByIdUseCase(messageRepository);
     });
 
     it('should return message when it exists', async () => {
-        messageRepository.findById.mockResolvedValue(message);
-
+        messageRepository.findById.mockResolvedValue(mockMessage);
         const result = await useCase.execute('message-1');
-
         expect(messageRepository.findById).toHaveBeenCalledWith('message-1');
-        expect(result).toEqual(message);
+        expect(result).toEqual(mockMessage);
     });
 
     it('should throw MessageNotFoundError when message does not exist', async () => {
         messageRepository.findById.mockResolvedValue(null);
-
-        await expect(useCase.execute('message-1')).rejects.toThrow(
+        await expect(useCase.execute('invalid-id')).rejects.toThrow(
             MessageNotFoundError,
         );
     });

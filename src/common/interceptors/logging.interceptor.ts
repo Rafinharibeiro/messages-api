@@ -14,8 +14,9 @@ export class LoggingInterceptor implements NestInterceptor {
 
     intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
         const now = Date.now();
-
         const request = context.switchToHttp().getRequest();
+        const user = request.user;
+        const userEmail = user.email || 'anonymous';
         const { method, originalUrl, url } = request;
         const route = originalUrl || url;
         const requestId = request.requestId || 'unknown';
@@ -24,6 +25,7 @@ export class LoggingInterceptor implements NestInterceptor {
             tap(() => {
                 this.logger.log({
                     message: 'HTTP request completed',
+                    user: userEmail,
                     method,
                     path: route,
                     requestId,
@@ -33,6 +35,7 @@ export class LoggingInterceptor implements NestInterceptor {
             catchError((error) => {
                 this.logger.error({
                     message: 'HTTP request failed',
+                    user: userEmail,
                     method,
                     path: route,
                     requestId,

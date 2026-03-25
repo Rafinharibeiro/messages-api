@@ -18,11 +18,13 @@ import { QueryMessagesDto } from './dto/query-messages.dto';
 import { UpdateMessageStatusDto } from './dto/update-message-status.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 
+
 @ApiTags('messages')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('messages')
 export class MessagesController {
+
     constructor(
         private readonly createMessageUseCase: CreateMessageUseCase,
         private readonly getMessageByIdUseCase: GetMessageByIdUseCase,
@@ -49,6 +51,7 @@ export class MessagesController {
     @ApiOperation({ summary: 'Buscar mensagens por remetente e/ou período' })
     @ApiResponse({ status: 200, description: 'Mensagens encontradas' })
     find(@Query() query: QueryMessagesDto) {
+
         const startDate = query.startDate ? new Date(query.startDate) : undefined;
         const endDate = query.endDate ? new Date(query.endDate) : undefined;
 
@@ -68,5 +71,4 @@ export class MessagesController {
     ) {
         return this.updateMessageStatusUseCase.execute(id, dto.status);
     }
-
 }

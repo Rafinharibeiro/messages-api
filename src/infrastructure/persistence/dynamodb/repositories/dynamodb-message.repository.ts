@@ -10,32 +10,30 @@ import { Message } from '../../../../core/domain/message/entities/message.entity
 import { MessageStatus } from '../../../../core/domain/message/enums/message-status.enum';
 import { MessageRepository } from '../../../../core/domain/message/repositories/message.repository';
 
+
 export class DynamoDbMessageRepository extends MessageRepository {
     private readonly client: DynamoDBDocumentClient;
     private readonly tableName = process.env.DYNAMODB_TABLE_NAME || 'messages';
 
     constructor() {
         super();
-
         const dynamoClient = new DynamoDBClient({
             region: process.env.AWS_REGION || 'us-east-1',
         });
-
         this.client = DynamoDBDocumentClient.from(dynamoClient);
     }
 
-    async create(message: Message): Promise<Message> {
+    public async create(message: Message): Promise<Message> {
         await this.client.send(
             new PutCommand({
                 TableName: this.tableName,
                 Item: this.toItem(message),
             }),
         );
-
         return message;
     }
 
-    async findById(id: string): Promise<Message | null> {
+    public async findById(id: string): Promise<Message | null> {
         const result = await this.client.send(
             new GetCommand({
                 TableName: this.tableName,
@@ -46,18 +44,15 @@ export class DynamoDbMessageRepository extends MessageRepository {
             }),
         );
 
-        if (!result.Item) {
-            return null;
-        }
-
+        if (!result.Item) return null;
         return this.toEntity(result.Item);
     }
 
-    async findBySender(sender: string): Promise<Message[]> {
+    public async findBySender(sender: string): Promise<Message[]> {
         const result = await this.client.send(
             new QueryCommand({
                 TableName: this.tableName,
-                IndexName: 'gsi1',
+                IndexName: 'gsi1', // Usando o Índice Secundário para buscar pelo Remetente
                 KeyConditionExpression: 'gsi1pk = :sender',
                 ExpressionAttributeValues: {
                     ':sender': `SENDER#${sender}`,
@@ -68,11 +63,11 @@ export class DynamoDbMessageRepository extends MessageRepository {
         return (result.Items || []).map((item) => this.toEntity(item));
     }
 
-    async findByPeriod(startDate: Date, endDate: Date): Promise<Message[]> {
+    public async findByPeriod(startDate: Date, endDate: Date): Promise<Message[]> {
         const result = await this.client.send(
             new QueryCommand({
                 TableName: this.tableName,
-                IndexName: 'gsi2',
+                IndexName: 'gsi2', // Usando o outro Índice Secundário para buscar por Data
                 KeyConditionExpression:
                     'gsi2pk = :message AND gsi2sk BETWEEN :startDate AND :endDate',
                 ExpressionAttributeValues: {
@@ -86,7 +81,7 @@ export class DynamoDbMessageRepository extends MessageRepository {
         return (result.Items || []).map((item) => this.toEntity(item));
     }
 
-    async findBySenderAndPeriod(
+    public async findBySenderAndPeriod(
         sender: string,
         startDate: Date,
         endDate: Date,
@@ -108,7 +103,7 @@ export class DynamoDbMessageRepository extends MessageRepository {
         return (result.Items || []).map((item) => this.toEntity(item));
     }
 
-    async updateStatus(id: string, status: MessageStatus): Promise<Message> {
+    public async updateStatus(id: string, status: MessageStatus): Promise<Message> {
         const result = await this.client.send(
             new UpdateCommand({
                 TableName: this.tableName,
@@ -118,12 +113,12 @@ export class DynamoDbMessageRepository extends MessageRepository {
                 },
                 UpdateExpression: 'SET #status = :status',
                 ExpressionAttributeNames: {
-                    '#status': 'status',
+                    '#status': 'status', // Evita conflitos com palavras reservadas do DynamoDB
                 },
                 ExpressionAttributeValues: {
                     ':status': status,
                 },
-                ReturnValues: 'ALL_NEW',
+                ReturnValues: 'ALL_NEW', // Retorna o item completo após a atualização
             }),
         );
 
@@ -136,7 +131,7 @@ export class DynamoDbMessageRepository extends MessageRepository {
 
     private toItem(message: Message) {
         return {
-            pk: `MESSAGE#${message.id}`,
+            pk: `MESSAGE#${message.id}`,                 // Graças aos 'getters', podemos ler message.id tranquilamente!
             sk: 'METADATA',
             gsi1pk: `SENDER#${message.sender}`,
             gsi1sk: message.sentAt.toISOString(),
@@ -150,8 +145,9 @@ export class DynamoDbMessageRepository extends MessageRepository {
         };
     }
 
+
     private toEntity(item: Record<string, any>): Message {
-        return new Message(
+        return Message.restore(
             item.id,
             item.content,
             item.sender,

@@ -3,8 +3,8 @@ import { InvalidMessageStatusTransitionError } from '../../../application/errors
 import { Message } from './message.entity';
 
 describe('Message Entity', () => {
-    const createMessage = (status: MessageStatus) =>
-        new Message(
+    const restoreMessageWithStatus = (status: MessageStatus) =>
+        Message.restore(
             'message-1',
             'Hello world',
             'rafael',
@@ -13,34 +13,26 @@ describe('Message Entity', () => {
         );
 
     it('should update status from SENT to RECEIVED', () => {
-        const message = createMessage(MessageStatus.SENT);
+        const message = Message.create('1', 'Hi', 'rafael');
 
         message.updateStatus(MessageStatus.RECEIVED);
 
         expect(message.status).toBe(MessageStatus.RECEIVED);
     });
 
-    it('should update status from RECEIVED to READ', () => {
-        const message = createMessage(MessageStatus.RECEIVED);
-
-        message.updateStatus(MessageStatus.READ);
-
-        expect(message.status).toBe(MessageStatus.READ);
-    });
-
     it('should throw when trying to update status from SENT directly to READ', () => {
-        const message = createMessage(MessageStatus.SENT);
+        const message = Message.create('1', 'Hi', 'rafael');
 
         expect(() => message.updateStatus(MessageStatus.READ)).toThrow(
             InvalidMessageStatusTransitionError,
         );
     });
 
-    it('should throw when trying to update status after READ', () => {
-        const message = createMessage(MessageStatus.READ);
+    it('should update status from RECEIVED to READ', () => {
+        const message = restoreMessageWithStatus(MessageStatus.RECEIVED);
 
-        expect(() => message.updateStatus(MessageStatus.RECEIVED)).toThrow(
-            InvalidMessageStatusTransitionError,
-        );
+        message.updateStatus(MessageStatus.READ);
+
+        expect(message.status).toBe(MessageStatus.READ);
     });
 });

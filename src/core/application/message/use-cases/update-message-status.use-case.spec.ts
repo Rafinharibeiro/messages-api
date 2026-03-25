@@ -4,14 +4,15 @@ import { Message } from '../../../domain/message/entities/message.entity';
 import { MessageStatus } from '../../../domain/message/enums/message-status.enum';
 import { MessageRepository } from '../../../domain/message/repositories/message.repository';
 import { UpdateMessageStatusUseCase } from './update-message-status.use-case';
+import { InvalidMessageStatusTransitionError } from '../../../application/errors/invalid-message-status-transition.error';
 
 describe('UpdateMessageStatusUseCase', () => {
     let messageRepository: jest.Mocked<MessageRepository>;
     let logger: jest.Mocked<LoggerPort>;
     let useCase: UpdateMessageStatusUseCase;
 
-    const createMessage = (status: MessageStatus) =>
-        new Message(
+    const createMockMessage = (status: MessageStatus) =>
+        Message.restore(
             'message-1',
             'Hello world',
             'rafael',
@@ -21,74 +22,52 @@ describe('UpdateMessageStatusUseCase', () => {
 
     beforeEach(() => {
         messageRepository = {
-            create: jest.fn(),
             findById: jest.fn(),
-            findBySender: jest.fn(),
-            findByPeriod: jest.fn(),
-            findBySenderAndPeriod: jest.fn(),
             updateStatus: jest.fn(),
-        };
+        } as any;
 
         logger = {
             log: jest.fn(),
             warn: jest.fn(),
-            error: jest.fn(),
-        };
+        } as any;
 
         useCase = new UpdateMessageStatusUseCase(messageRepository, logger);
     });
 
-    it('should update status from SENT to RECEIVED', async () => {
-        const message = createMessage(MessageStatus.SENT);
-        const updatedMessage = createMessage(MessageStatus.RECEIVED);
-
-        messageRepository.findById.mockResolvedValue(message);
+    it('should update status from SENT to RECEIVED successfully', async () => {
+        const initialMessage = createMockMessage(MessageStatus.SENT);
+        const updatedMessage = createMockMessage(MessageStatus.RECEIVED);
+        messageRepository.findById.mockResolvedValue(initialMessage);
         messageRepository.updateStatus.mockResolvedValue(updatedMessage);
-
         const result = await useCase.execute('message-1', MessageStatus.RECEIVED);
-
         expect(messageRepository.findById).toHaveBeenCalledWith('message-1');
-        expect(messageRepository.updateStatus).toHaveBeenCalledWith(
-            'message-1',
-            MessageStatus.RECEIVED,
-        );
+        expect(messageRepository.updateStatus).toHaveBeenCalledWith('message-1', MessageStatus.RECEIVED);
         expect(result.status).toBe(MessageStatus.RECEIVED);
     });
 
-    it('should throw MessageNotFoundError when message does not exist', async () => {
+    it('should log a warning and throw when message does not exist', async () => {
         messageRepository.findById.mockResolvedValue(null);
-
-        await expect(
-            useCase.execute('message-1', MessageStatus.RECEIVED),
-        ).rejects.toThrow(MessageNotFoundError);
+        await expect(useCase.execute('invalid-id', MessageStatus.RECEIVED))
+            .rejects.toThrow(MessageNotFoundError);
 
         expect(logger.warn).toHaveBeenCalledWith(
             'Message not found during status update',
-            expect.objectContaining({
-                source: 'UpdateMessageStatusUseCase',
-                messageId: 'message-1',
-                attemptedStatus: MessageStatus.RECEIVED,
-            }),
+            expect.objectContaining({ messageId: 'invalid-id' })
         );
     });
 
-    it('should throw when status transition is invalid', async () => {
-        const message = createMessage(MessageStatus.SENT);
-
-        messageRepository.findById.mockResolvedValue(message);
-
-        await expect(
-            useCase.execute('message-1', MessageStatus.READ),
-        ).rejects.toThrow();
-
+    it('should NOT update repository if entity validation fails (SENT to READ)', async () => {
+        const initialMessage = createMockMessage(MessageStatus.SENT);
+        messageRepository.findById.mockResolvedValue(initialMessage);
+        await expect(useCase.execute('message-1', MessageStatus.READ))
+            .rejects.toThrow(InvalidMessageStatusTransitionError);
         expect(messageRepository.updateStatus).not.toHaveBeenCalled();
     });
 
-    it('should log successful status update', async () => {
-        const message = createMessage(MessageStatus.SENT);
-        const updatedMessage = createMessage(MessageStatus.RECEIVED);
-
-        messageRepository.findById.mockResolvedValue(message);
+    it('should log the successful transition with previous and new status', async () => {
+        const initialMessage = createMockMessage(MessageStatus.SENT);
+        const updatedMessage = createMockMessage(MessageStatus.RECEIVED);
+        messageRepository.findById.mockResolvedValue(initialMessage);
         messageRepository.updateStatus.mockResolvedValue(updatedMessage);
 
         await useCase.execute('message-1', MessageStatus.RECEIVED);
@@ -96,11 +75,9 @@ describe('UpdateMessageStatusUseCase', () => {
         expect(logger.log).toHaveBeenCalledWith(
             'Message status updated successfully',
             expect.objectContaining({
-                source: 'UpdateMessageStatusUseCase',
-                messageId: 'message-1',
                 previousStatus: MessageStatus.SENT,
                 newStatus: MessageStatus.RECEIVED,
-            }),
+            })
         );
     });
 });

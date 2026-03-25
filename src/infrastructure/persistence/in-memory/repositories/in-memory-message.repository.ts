@@ -3,7 +3,7 @@ import { MessageStatus } from '../../../../core/domain/message/enums/message-sta
 import { MessageRepository } from '../../../../core/domain/message/repositories/message.repository';
 
 export class InMemoryMessageRepository extends MessageRepository {
-    private readonly messages: Message[] = [];
+    private messages: Message[] = [];
 
     async create(message: Message): Promise<Message> {
         this.messages.push(message);
@@ -44,8 +44,10 @@ export class InMemoryMessageRepository extends MessageRepository {
         if (!message) {
             throw new Error('Message not found');
         }
-
-        message.status = status;
         return message;
+    }
+
+    clear() {
+        this.messages = [];
     }
 }

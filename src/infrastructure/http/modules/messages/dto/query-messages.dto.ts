@@ -1,10 +1,11 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsDateString, IsOptional, IsString, ValidateIf } from 'class-validator';
+import { IsBefore } from 'src/common/decorators/is-before.decorator';
 
 export class QueryMessagesDto {
     @ApiPropertyOptional({
         example: 'rafael',
-        description: 'Remetente da mensagem',
+        description: 'Message sender',
     })
     @IsOptional()
     @IsString()
@@ -12,17 +13,18 @@ export class QueryMessagesDto {
 
     @ApiPropertyOptional({
         example: '2026-03-01T00:00:00.000Z',
-        description: 'Data inicial para busca por período',
+        description: 'Start date for period search',
     })
     @ValidateIf((obj) => obj.endDate !== undefined)
-    @IsDateString()
+    @IsDateString({}, { message: 'Invalid start date format.' })
+    @IsBefore('endDate')
     startDate?: string;
 
     @ApiPropertyOptional({
         example: '2026-03-21T23:59:59.999Z',
-        description: 'Data final para busca por período',
+        description: 'End date for period search',
     })
     @ValidateIf((obj) => obj.startDate !== undefined)
-    @IsDateString()
+    @IsDateString({}, { message: 'Invalid end date format.' })
     endDate?: string;
 }

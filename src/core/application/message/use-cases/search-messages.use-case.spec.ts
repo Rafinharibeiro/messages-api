@@ -8,8 +8,9 @@ describe('SearchMessagesUseCase', () => {
     let messageRepository: jest.Mocked<MessageRepository>;
     let useCase: SearchMessagesUseCase;
 
-    const messages = [
-        new Message(
+
+    const mockMessages = [
+        Message.restore(
             'message-1',
             'Hello world',
             'rafael',
@@ -17,67 +18,42 @@ describe('SearchMessagesUseCase', () => {
             MessageStatus.SENT,
         ),
     ];
+    const startDate = new Date('2026-03-01T00:00:00.000Z');
+    const endDate = new Date('2026-03-31T23:59:59.999Z');
 
     beforeEach(() => {
         messageRepository = {
-            create: jest.fn(),
-            findById: jest.fn(),
             findBySender: jest.fn(),
             findByPeriod: jest.fn(),
             findBySenderAndPeriod: jest.fn(),
-            updateStatus: jest.fn(),
-        };
+        } as any;
 
         useCase = new SearchMessagesUseCase(messageRepository);
     });
 
-    it('should search messages by sender', async () => {
-        messageRepository.findBySender.mockResolvedValue(messages);
-
-        const result = await useCase.execute({
-            sender: 'rafael',
-        });
-
+    it('should search messages by sender only', async () => {
+        messageRepository.findBySender.mockResolvedValue(mockMessages);
+        const result = await useCase.execute({ sender: 'rafael' });
         expect(messageRepository.findBySender).toHaveBeenCalledWith('rafael');
-        expect(result).toEqual(messages);
+        expect(result).toEqual(mockMessages);
     });
 
-    it('should search messages by period', async () => {
-        const startDate = new Date('2026-03-01T00:00:00.000Z');
-        const endDate = new Date('2026-03-31T23:59:59.999Z');
-
-        messageRepository.findByPeriod.mockResolvedValue(messages);
-
-        const result = await useCase.execute({
-            startDate,
-            endDate,
-        });
-
-        expect(messageRepository.findByPeriod).toHaveBeenCalledWith(
-            startDate,
-            endDate,
-        );
-        expect(result).toEqual(messages);
+    it('should search messages by period only', async () => {
+        messageRepository.findByPeriod.mockResolvedValue(mockMessages);
+        const result = await useCase.execute({ startDate, endDate });
+        expect(messageRepository.findByPeriod).toHaveBeenCalledWith(startDate, endDate);
+        expect(result).toEqual(mockMessages);
     });
 
-    it('should search messages by sender and period', async () => {
-        const startDate = new Date('2026-03-01T00:00:00.000Z');
-        const endDate = new Date('2026-03-31T23:59:59.999Z');
-
-        messageRepository.findBySenderAndPeriod.mockResolvedValue(messages);
-
-        const result = await useCase.execute({
-            sender: 'rafael',
-            startDate,
-            endDate,
-        });
-
+    it('should search messages by sender and period combined', async () => {
+        messageRepository.findBySenderAndPeriod.mockResolvedValue(mockMessages);
+        const result = await useCase.execute({ sender: 'rafael', startDate, endDate });
         expect(messageRepository.findBySenderAndPeriod).toHaveBeenCalledWith(
             'rafael',
             startDate,
             endDate,
         );
-        expect(result).toEqual(messages);
+        expect(result).toEqual(mockMessages);
     });
 
     it('should throw InvalidMessageSearchFilterError when no filters are provided', async () => {
