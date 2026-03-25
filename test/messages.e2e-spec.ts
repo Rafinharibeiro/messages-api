@@ -35,8 +35,8 @@ describe('Messages API (e2e)', () => {
 
         // Mantemos os Pipes e Interceptors iguais ao ambiente de produção
         app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
-        app.useGlobalFilters(new GlobalExceptionFilter());
-        app.useGlobalInterceptors(new LoggingInterceptor());
+        app.useGlobalFilters(app.get(GlobalExceptionFilter));
+        app.useGlobalInterceptors(app.get(LoggingInterceptor));
 
         await app.init();
         repository = moduleFixture.get<MessageRepository>(MessageRepository);

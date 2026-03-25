@@ -7,6 +7,7 @@ import {
     Post,
     Query,
     UseGuards,
+    ParseUUIDPipe,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreateMessageUseCase } from '../../../../core/application/message/use-cases/create-message.use-case';
@@ -14,17 +15,17 @@ import { GetMessageByIdUseCase } from '../../../../core/application/message/use-
 import { SearchMessagesUseCase } from '../../../../core/application/message/use-cases/search-messages.use-case';
 import { UpdateMessageStatusUseCase } from '../../../../core/application/message/use-cases/update-message-status.use-case';
 import { CreateMessageDto } from './dto/create-message.dto';
+import { MessageResponseDto } from './dto/message-response.dto';
 import { QueryMessagesDto } from './dto/query-messages.dto';
 import { UpdateMessageStatusDto } from './dto/update-message-status.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-
+import { toMessageResponse, toMessageResponseList } from './message.presenter';
 
 @ApiTags('messages')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('messages')
 export class MessagesController {
-
     constructor(
         private readonly createMessageUseCase: CreateMessageUseCase,
         private readonly getMessageByIdUseCase: GetMessageByIdUseCase,
@@ -34,41 +35,40 @@ export class MessagesController {
 
     @Post()
     @ApiOperation({ summary: 'Criar uma nova mensagem' })
-    @ApiResponse({ status: 201, description: 'Mensagem criada com sucesso' })
-    create(@Body() dto: CreateMessageDto) {
-        return this.createMessageUseCase.execute(dto);
+    @ApiResponse({ status: 201, description: 'Sucesso', type: MessageResponseDto })
+    async create(@Body() dto: CreateMessageDto): Promise<MessageResponseDto> {
+        const message = await this.createMessageUseCase.execute(dto);
+        return toMessageResponse(message);
     }
 
     @Get(':id')
     @ApiOperation({ summary: 'Buscar mensagem por ID' })
-    @ApiResponse({ status: 200, description: 'Mensagem encontrada' })
-    @ApiResponse({ status: 404, description: 'Mensagem não encontrada' })
-    findById(@Param('id') id: string) {
-        return this.getMessageByIdUseCase.execute(id);
+    @ApiResponse({ status: 200, type: MessageResponseDto })
+    @ApiResponse({ status: 404, description: 'Não encontrado' })
+    async findById(
+        @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    ): Promise<MessageResponseDto> {
+        const message = await this.getMessageByIdUseCase.execute(id);
+        return toMessageResponse(message);
     }
 
     @Get()
-    @ApiOperation({ summary: 'Buscar mensagens por remetente e/ou período' })
-    @ApiResponse({ status: 200, description: 'Mensagens encontradas' })
-    find(@Query() query: QueryMessagesDto) {
-
-        const startDate = query.startDate ? new Date(query.startDate) : undefined;
-        const endDate = query.endDate ? new Date(query.endDate) : undefined;
-
-        return this.searchMessagesUseCase.execute({
-            sender: query.sender,
-            startDate,
-            endDate,
-        });
+    @ApiOperation({ summary: 'Listar mensagens com filtros' })
+    @ApiResponse({ status: 200, type: [MessageResponseDto] })
+    async find(@Query() query: QueryMessagesDto): Promise<MessageResponseDto[]> {
+        const messages = await this.searchMessagesUseCase.execute(query);
+        return toMessageResponseList(messages);
     }
 
     @Patch(':id/status')
-    @ApiOperation({ summary: 'Atualizar status da mensagem' })
-    @ApiResponse({ status: 200, description: 'Status atualizado com sucesso' })
-    updateStatus(
-        @Param('id') id: string,
+    @ApiOperation({ summary: 'Atualizar status (Máquina de Estados)' })
+    @ApiResponse({ status: 200, type: MessageResponseDto })
+    async updateStatus(
+        @Param('id', new ParseUUIDPipe()) id: string,
         @Body() dto: UpdateMessageStatusDto,
-    ) {
-        return this.updateMessageStatusUseCase.execute(id, dto.status);
+    ): Promise<MessageResponseDto> {
+        // Delegamos a validação da transição de status para a Entidade de Domínio
+        const message = await this.updateMessageStatusUseCase.execute(id, dto.status);
+        return toMessageResponse(message);
     }
 }

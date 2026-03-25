@@ -6,23 +6,30 @@ import {
     ValidationArguments,
 } from 'class-validator';
 
+
 @ValidatorConstraint({ name: 'isBefore', async: false })
 export class IsBeforeConstraint implements ValidatorConstraintInterface {
 
-    validate(propertyValue: string, args: ValidationArguments) {
+
+    validate(value: any, args: ValidationArguments): boolean {
         const [relatedPropertyName] = args.constraints;
         const relatedValue = (args.object as any)[relatedPropertyName];
 
-        if (!propertyValue || !relatedValue) {
+        if (!value || !relatedValue) {
             return true;
         }
-
-        const startDate = new Date(propertyValue);
-        const endDate = new Date(relatedValue);
-        return startDate <= endDate;
+        const start = value instanceof Date ? value : new Date(value);
+        const end = relatedValue instanceof Date ? relatedValue : new Date(relatedValue);
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+            return false;
+        }
+        return start <= end;
     }
-    defaultMessage(args: ValidationArguments) {
-        return `Start date cannot be later than end date.`;
+
+
+    defaultMessage(args: ValidationArguments): string {
+        const [relatedPropertyName] = args.constraints;
+        return `${args.property} cannot be later than ${relatedPropertyName}`;
     }
 }
 

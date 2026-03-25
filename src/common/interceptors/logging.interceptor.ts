@@ -2,29 +2,28 @@ import {
     CallHandler,
     ExecutionContext,
     Injectable,
-    Logger,
     NestInterceptor,
 } from '@nestjs/common';
 import { Observable, throwError } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
+import { AppLoggerService } from '../../infrastructure/logging/app-logger.service';
 
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
-    private readonly logger = new Logger(LoggingInterceptor.name);
+    constructor(private readonly logger: AppLoggerService) { }
 
     intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
         const now = Date.now();
         const request = context.switchToHttp().getRequest();
         const user = request.user;
-        const userEmail = user.email || 'anonymous';
+        const userEmail = user?.email ?? 'anonymous';
         const { method, originalUrl, url } = request;
         const route = originalUrl || url;
         const requestId = request.requestId || 'unknown';
 
         return next.handle().pipe(
             tap(() => {
-                this.logger.log({
-                    message: 'HTTP request completed',
+                this.logger.log('HTTP request completed', {
                     user: userEmail,
                     method,
                     path: route,
@@ -33,8 +32,7 @@ export class LoggingInterceptor implements NestInterceptor {
                 });
             }),
             catchError((error) => {
-                this.logger.error({
-                    message: 'HTTP request failed',
+                this.logger.error('HTTP request failed', {
                     user: userEmail,
                     method,
                     path: route,

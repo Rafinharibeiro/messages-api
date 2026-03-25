@@ -1,6 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
-// Transform é do 'class-transformer', super útil para limpar dados!
 import { Transform } from 'class-transformer';
 
 
@@ -12,11 +11,7 @@ export class CreateMessageDto {
     })
 
     @IsString({ message: 'Message content must be a text.' })
-
     @IsNotEmpty({ message: 'Message content cannot be empty.' })
-
-    @MaxLength(1000, { message: 'Message content cannot be longer than 1000 characters.' })
-
     @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
     content: string;
 

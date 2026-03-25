@@ -1,4 +1,9 @@
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import {
+    CreateTableCommand,
+    DescribeTableCommand,
+    DynamoDBClient,
+    waitUntilTableExists,
+} from '@aws-sdk/client-dynamodb';
 import {
     DynamoDBDocumentClient,
     GetCommand,
@@ -13,17 +18,21 @@ import { MessageRepository } from '../../../../core/domain/message/repositories/
 
 export class DynamoDbMessageRepository extends MessageRepository {
     private readonly client: DynamoDBDocumentClient;
+    private readonly rawClient: DynamoDBClient;
     private readonly tableName = process.env.DYNAMODB_TABLE_NAME || 'messages';
+    private tableReady?: Promise<void>;
 
     constructor() {
         super();
         const dynamoClient = new DynamoDBClient({
             region: process.env.AWS_REGION || 'us-east-1',
         });
+        this.rawClient = dynamoClient;
         this.client = DynamoDBDocumentClient.from(dynamoClient);
     }
 
     public async create(message: Message): Promise<Message> {
+        await this.ensureTableExists();
         await this.client.send(
             new PutCommand({
                 TableName: this.tableName,
@@ -52,7 +61,7 @@ export class DynamoDbMessageRepository extends MessageRepository {
         const result = await this.client.send(
             new QueryCommand({
                 TableName: this.tableName,
-                IndexName: 'gsi1', // Usando o Índice Secundário para buscar pelo Remetente
+                IndexName: 'gsi1',
                 KeyConditionExpression: 'gsi1pk = :sender',
                 ExpressionAttributeValues: {
                     ':sender': `SENDER#${sender}`,
@@ -154,5 +163,69 @@ export class DynamoDbMessageRepository extends MessageRepository {
             new Date(item.sentAt),
             item.status as MessageStatus,
         );
+    }
+
+    private async ensureTableExists(): Promise<void> {
+        if (this.tableReady) {
+            return this.tableReady;
+        }
+
+        this.tableReady = (async () => {
+            try {
+                await this.rawClient.send(
+                    new DescribeTableCommand({ TableName: this.tableName }),
+                );
+                return;
+            } catch (err: any) {
+                const name = err?.name || err?.Code;
+                if (name !== 'ResourceNotFoundException') {
+                    throw err;
+                }
+            }
+
+            await this.rawClient.send(
+                new CreateTableCommand({
+                    TableName: this.tableName,
+                    AttributeDefinitions: [
+                        { AttributeName: 'pk', AttributeType: 'S' },
+                        { AttributeName: 'sk', AttributeType: 'S' },
+                        { AttributeName: 'gsi1pk', AttributeType: 'S' },
+                        { AttributeName: 'gsi1sk', AttributeType: 'S' },
+                        { AttributeName: 'gsi2pk', AttributeType: 'S' },
+                        { AttributeName: 'gsi2sk', AttributeType: 'S' },
+                    ],
+                    KeySchema: [
+                        { AttributeName: 'pk', KeyType: 'HASH' },
+                        { AttributeName: 'sk', KeyType: 'RANGE' },
+                    ],
+                    BillingMode: 'PAY_PER_REQUEST',
+                    GlobalSecondaryIndexes: [
+                        {
+                            IndexName: 'gsi1',
+                            KeySchema: [
+                                { AttributeName: 'gsi1pk', KeyType: 'HASH' },
+                                { AttributeName: 'gsi1sk', KeyType: 'RANGE' },
+                            ],
+                            Projection: { ProjectionType: 'ALL' },
+                        },
+                        {
+                            IndexName: 'gsi2',
+                            KeySchema: [
+                                { AttributeName: 'gsi2pk', KeyType: 'HASH' },
+                                { AttributeName: 'gsi2sk', KeyType: 'RANGE' },
+                            ],
+                            Projection: { ProjectionType: 'ALL' },
+                        },
+                    ],
+                }),
+            );
+
+            await waitUntilTableExists(
+                { client: this.rawClient, maxWaitTime: 60 },
+                { TableName: this.tableName },
+            );
+        })();
+
+        return this.tableReady;
     }
 }

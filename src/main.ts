@@ -24,8 +24,8 @@ async function bootstrap() {
     }),
   );
 
-  app.useGlobalFilters(new GlobalExceptionFilter());
-  app.useGlobalInterceptors(new LoggingInterceptor());
+  app.useGlobalFilters(app.get(GlobalExceptionFilter));
+  app.useGlobalInterceptors(app.get(LoggingInterceptor));
 
   const config = new DocumentBuilder()
     .setTitle('Messages API')

@@ -97,6 +97,11 @@ yarn dynamo:create
 
 O script usa `AWS_REGION` e `DYNAMODB_TABLE_NAME` do ambiente atual.
 
+### Criacao automatica (sob demanda)
+
+Se a tabela nao existir, ela sera criada automaticamente **no primeiro** `POST /messages`.
+Isso exige permissao `dynamodb:CreateTable` na sua credencial AWS.
+
 ## Executando a API
 
 Instale as dependencias:
@@ -155,6 +160,18 @@ Content-Type: application/json
 }
 ```
 
+Resposta:
+
+```json
+{
+  "id": "f1f7b4e6-1b7a-4f87-9b18-9b8f4c2a9e3a",
+  "content": "Hello world",
+  "sender": "rafael",
+  "sentAt": "2026-03-25T12:00:00.000Z",
+  "status": "Enviado"
+}
+```
+
 Atualizar status:
 
 ```http
@@ -165,7 +182,7 @@ Content-Type: application/json
 
 ```json
 {
-  "status": "READ"
+  "status": "Lido"
 }
 ```
 
@@ -204,6 +221,10 @@ A aplicacao possui:
 - interceptor de tempo de resposta
 - global exception filter
 - envio opcional de logs para Datadog via `@shelf/winston-datadog-logs-transport`
+
+## Fluxograma da API
+
+O fluxograma esta em `docs/fluxograma-api.drawio`.
 
 ### Datadog (opcional)
 

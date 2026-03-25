@@ -4,13 +4,13 @@ import {
     ExceptionFilter,
     HttpException,
     HttpStatus,
-    Logger,
 } from '@nestjs/common';
 import { BaseApplicationError } from '../../core/application/errors/base-application.error';
+import { AppLoggerService } from '../../infrastructure/logging/app-logger.service';
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
-    private readonly logger = new Logger(GlobalExceptionFilter.name);
+    constructor(private readonly logger: AppLoggerService) { }
 
     catch(exception: unknown, host: ArgumentsHost) {
         const ctx = host.switchToHttp();
@@ -22,8 +22,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         if (exception instanceof BaseApplicationError) {
             const status = this.mapApplicationErrorToStatus(exception.code);
 
-            this.logger.warn({
-                message: 'Application error handled',
+            this.logger.warn('Application error handled', {
                 requestId,
                 path: request.url,
                 code: exception.code,
@@ -45,8 +44,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
             const status = exception.getStatus();
             const exceptionResponse = exception.getResponse();
 
-            this.logger.warn({
-                message: 'HTTP exception handled',
+            this.logger.warn('HTTP exception handled', {
                 requestId,
                 path: request.url,
                 status,
@@ -63,8 +61,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
             });
         }
 
-        this.logger.error({
-            message: 'Unexpected internal error',
+        this.logger.error('Unexpected internal error', {
             requestId,
             path: request.url,
             errorMessage: exception instanceof Error ? exception.message : 'Unknown error',
